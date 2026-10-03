@@ -10,7 +10,12 @@ from ingestion.src.sources.base import NewsSource
 
 class RSSNewsSource(NewsSource):
 
-    def __init__(self, source_id: str, source_name: str, feed_url: str):
+    def __init__(
+        self,
+        source_id: str,
+        source_name: str,
+        feed_url: str,
+    ):
         self.source_id = source_id
         self.source_name = source_name
         self.feed_url = feed_url
@@ -18,6 +23,11 @@ class RSSNewsSource(NewsSource):
     def fetch_articles(self) -> List[Article]:
 
         feed = feedparser.parse(self.feed_url)
+
+        if feed.bozo:
+            raise RuntimeError(
+                f"Failed to parse RSS feed: {self.feed_url}"
+            )
 
         articles = []
 
@@ -31,14 +41,14 @@ class RSSNewsSource(NewsSource):
 
             article_id = hashlib.sha256(
                 url.encode("utf-8")
-            ).hexdigest()# WE are creating article ID over here much like UUID 
+            ).hexdigest()
 
             published_at = None
 
             if entry.get("published_parsed"):
                 published_at = datetime(
                     *entry.published_parsed[:6],
-                    tzinfo=timezone.utc
+                    tzinfo=timezone.utc,
                 )
 
             article = Article(
