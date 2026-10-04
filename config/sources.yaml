@@ -1,0 +1,6 @@
+sources:
+  - source_id: indian-express
+    source_name: The Indian Express
+    type: rss
+    feed_url: https://indianexpress.com/section/india/feed/
+    enabled: true

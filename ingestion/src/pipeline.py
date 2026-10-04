@@ -1,31 +1,60 @@
+from pathlib import Path
+
+from ingestion.src.config.loader import ConfigLoader
 from ingestion.src.sources.rss import RSSNewsSource
 from ingestion.src.storage.bronze import BronzeStorage
-
-
-RSS_FEED_URL = "https://indianexpress.com/section/india/feed/"
 
 
 def main():
 
     print("Starting NarrativeX news ingestion...")
 
-    source = RSSNewsSource(
-        source_id="indian-express",
-        source_name="The Indian Express",
-        feed_url=RSS_FEED_URL,
+    config_path = Path("config/sources.yaml")
+
+    config_loader = ConfigLoader(
+        str(config_path)
     )
 
-    print(f"Fetching articles from {source.source_name}...")
-
-    articles = source.fetch_articles()
-
-    print(f"Articles fetched: {len(articles)}")
+    config = config_loader.load()
 
     storage = BronzeStorage()
 
-    output_file = storage.write_articles(articles)
+    for source_config in config["sources"]:
 
-    print(f"Articles written to: {output_file}")
+        if not source_config.get("enabled", True):
+            continue
+
+        source_type = source_config["type"]
+
+        if source_type != "rss":
+            raise ValueError(
+                f"Unsupported source type: {source_type}"
+            )
+
+        source = RSSNewsSource(
+            source_id=source_config["source_id"],
+            source_name=source_config["source_name"],
+            feed_url=source_config["feed_url"],
+        )
+
+        print(
+            f"Fetching articles from "
+            f"{source.source_name}..."
+        )
+
+        articles = source.fetch_articles()
+
+        print(
+            f"Articles fetched: {len(articles)}"
+        )
+
+        output_file = storage.write_articles(
+            articles
+        )
+
+        print(
+            f"Articles written to: {output_file}"
+        )
 
 
 if __name__ == "__main__":
