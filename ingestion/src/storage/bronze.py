@@ -1,8 +1,16 @@
+from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import List
 
 from ingestion.src.models.article import Article
+
+
+@dataclass(frozen=True)
+class BronzeWriteResult:
+    output_file: Path
+    inserted_count: int
+    duplicates_skipped: int
 
 
 class BronzeStorage:
@@ -60,4 +68,8 @@ class BronzeStorage:
                 ensure_ascii=False,
             )
             
-        return output_file
+        return BronzeWriteResult(
+    output_file=output_file,
+    inserted_count=len(new_articles),
+    duplicates_skipped=len(articles) - len(new_articles),
+)

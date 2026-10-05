@@ -41,9 +41,14 @@ def test_bronze_storage_writes_new_articles(tmp_path):
         ),
     ]
 
-    output_file = storage.write_articles(articles)
+    result = storage.write_articles(articles)
 
-    stored_articles = load_articles(output_file)
+    assert result.inserted_count == 2
+    assert result.duplicates_skipped == 0
+
+    stored_articles = load_articles(
+        result.output_file
+    )
 
     assert len(stored_articles) == 2
     assert stored_articles[0]["article_id"] == "article-001"
@@ -61,12 +66,23 @@ def test_bronze_storage_skips_existing_articles(tmp_path):
         "First Test Article",
     )
 
-    storage.write_articles([article])
-    storage.write_articles([article])
+    first_result = storage.write_articles(
+        [article]
+    )
 
-    output_file = tmp_path / "bronze" / "articles.json"
+    second_result = storage.write_articles(
+        [article]
+    )
 
-    stored_articles = load_articles(output_file)
+    assert first_result.inserted_count == 1
+    assert first_result.duplicates_skipped == 0
+
+    assert second_result.inserted_count == 0
+    assert second_result.duplicates_skipped == 1
+
+    stored_articles = load_articles(
+        second_result.output_file
+    )
 
     assert len(stored_articles) == 1
     assert stored_articles[0]["article_id"] == "article-001"
@@ -95,9 +111,14 @@ def test_bronze_storage_handles_duplicates_within_same_batch(tmp_path):
         article_2,
     ]
 
-    output_file = storage.write_articles(articles)
+    result = storage.write_articles(articles)
 
-    stored_articles = load_articles(output_file)
+    assert result.inserted_count == 2
+    assert result.duplicates_skipped == 2
+
+    stored_articles = load_articles(
+        result.output_file
+    )
 
     ids = [
         article["article_id"]
