@@ -48,12 +48,24 @@ def main():
             f"Articles fetched: {len(articles)}"
         )
 
-        output_file = storage.write_articles(
+        # Indentation fixed from here down
+        write_result = storage.write_articles(
             articles
         )
 
         print(
-            f"Articles written to: {output_file}"
+            f"New articles written: "
+            f"{write_result.inserted_count}"
+        )
+
+        print(
+            f"Duplicates skipped: "
+            f"{write_result.duplicates_skipped}"
+        )
+
+        print(
+            f"Articles written to: "
+            f"{write_result.output_file}"
         )
 
 
