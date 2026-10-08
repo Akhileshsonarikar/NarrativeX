@@ -4,3 +4,8 @@ sources:
     type: rss
     feed_url: https://indianexpress.com/section/india/feed/
     enabled: true
+  - source_id: ndtv-india
+    source_name: NDTV India
+    type: rss
+    feed_url: https://feeds.feedburner.com/ndtvnews-india-news
+    enabled: true

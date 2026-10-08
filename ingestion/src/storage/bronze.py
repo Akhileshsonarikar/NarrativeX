@@ -29,7 +29,7 @@ class BronzeStorage:
 
         existing_articles = []
 
-        if output_file.exists():
+        if output_file.exists():# THIS IS USED TO IDNTIFY AND SKIP DUPLICATES
             with output_file.open(
                 "r",
                 encoding="utf-8",

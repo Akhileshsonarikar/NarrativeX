@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from ingestion.src.config.loader import ConfigLoader
+from ingestion.src.models.ingestion_result import SourceIngestionResult
 from ingestion.src.sources.rss import RSSNewsSource
 from ingestion.src.storage.bronze import BronzeStorage
 
@@ -18,6 +19,8 @@ def main():
     config = config_loader.load()
 
     storage = BronzeStorage()
+
+    results = []
 
     for source_config in config["sources"]:
 
@@ -37,36 +40,118 @@ def main():
             feed_url=source_config["feed_url"],
         )
 
+        try:
+
+            print(
+                f"Fetching articles from "
+                f"{source.source_name}..."
+            )
+
+            articles = source.fetch_articles()
+
+            print(
+                f"Articles fetched: {len(articles)}"
+            )
+
+            write_result = storage.write_articles(
+                articles
+            )
+
+            print(
+                f"New articles written: "
+                f"{write_result.inserted_count}"
+            )
+
+            print(
+                f"Duplicates skipped: "
+                f"{write_result.duplicates_skipped}"
+            )
+
+            results.append(
+                SourceIngestionResult(
+                    source_id=source.source_id,
+                    source_name=source.source_name,
+                    fetched_count=len(articles),
+                    inserted_count=(
+                        write_result.inserted_count
+                    ),
+                    duplicates_skipped=(
+                        write_result.duplicates_skipped
+                    ),
+                    status="SUCCESS",
+                )
+            )
+
+        except Exception as error:
+
+            error_message = str(error)
+
+            print(
+                f"ERROR: Failed to ingest "
+                f"{source.source_name}: "
+                f"{error_message}"
+            )
+
+            results.append(
+                SourceIngestionResult(
+                    source_id=source.source_id,
+                    source_name=source.source_name,
+                    fetched_count=0,
+                    inserted_count=0,
+                    duplicates_skipped=0,
+                    status="FAILED",
+                    error_message=error_message,
+                )
+            )
+
+            continue
+
+    print()
+    print("=" * 80)
+    print("NarrativeX Ingestion Summary")
+    print("=" * 80)
+
+    print(
+        f"{'Source':<25}"
+        f"{'Status':<12}"
+        f"{'Fetched':>10}"
+        f"{'New':>10}"
+        f"{'Duplicates':>15}"
+    )
+
+    print("-" * 80)
+
+    total_fetched = 0
+    total_inserted = 0
+    total_duplicates = 0
+
+    for result in results:
+
         print(
-            f"Fetching articles from "
-            f"{source.source_name}..."
+            f"{result.source_name:<25}"
+            f"{result.status:<12}"
+            f"{result.fetched_count:>10}"
+            f"{result.inserted_count:>10}"
+            f"{result.duplicates_skipped:>15}"
         )
 
-        articles = source.fetch_articles()
+        total_fetched += result.fetched_count
+        total_inserted += result.inserted_count
+        total_duplicates += result.duplicates_skipped
 
-        print(
-            f"Articles fetched: {len(articles)}"
-        )
+    print("-" * 80)
 
-        # Indentation fixed from here down
-        write_result = storage.write_articles(
-            articles
-        )
+    print(
+        f"{'TOTAL':<25}"
+        f"{'':<12}"
+        f"{total_fetched:>10}"
+        f"{total_inserted:>10}"
+        f"{total_duplicates:>15}"
+    )
 
-        print(
-            f"New articles written: "
-            f"{write_result.inserted_count}"
-        )
+    print("=" * 80)
 
-        print(
-            f"Duplicates skipped: "
-            f"{write_result.duplicates_skipped}"
-        )
-
-        print(
-            f"Articles written to: "
-            f"{write_result.output_file}"
-        )
+    return results
 
 
 if __name__ == "__main__":
